@@ -6,8 +6,9 @@ import FileDetails from './components/FileDetails';
 import LoadingState from './components/LoadingState';
 import ErrorMessage from './components/ErrorMessage';
 import Statistics from './components/Statistics';
+import LogicAnalysis from './components/LogicAnalysis';
 import { downloadAnalysisReport } from './utils/pdfExport';
-import { fetchRepositoryFiles, classifyFile, generateTest as generateTestApi, runTest as runTestApi } from './utils/api';
+import { fetchRepositoryFiles, classifyFile, generateTest as generateTestApi, runTest as runTestApi, analyzeLogicFiles as analyzeLogicFilesApi } from './utils/api';
 
 function App() {
   const [repoUrl, setRepoUrl] = useState('');
@@ -19,6 +20,9 @@ function App() {
   const [testCode, setTestCode] = useState('');
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState(null);
+  const [analysisError, setAnalysisError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,6 +138,51 @@ function App() {
       setTestLoading(false);
     }
   };
+  
+  const handleAnalyzeLogic = async () => {
+    if (!files || files.length === 0) {
+      setAnalysisError('No files available for analysis');
+      return;
+    }
+    
+    setAnalysisLoading(true);
+    setAnalysisError('');
+    
+    try {
+      // Only analyze files classified as logic
+      const logicFiles = files.filter(file => file.classification === 'logic');
+      
+      console.log('Logic files for analysis:', logicFiles);
+      
+      if (logicFiles.length === 0) {
+        setAnalysisError('No logic files found for analysis');
+        setAnalysisLoading(false);
+        return;
+      }
+      
+      // Make sure files have the required content property
+      const filesToAnalyze = logicFiles.map(file => ({
+        path: file.path,
+        content: file.content,
+        classification: file.classification
+      }));
+      
+      console.log('Sending files to API for analysis:', filesToAnalyze);
+      
+      const result = await analyzeLogicFilesApi(filesToAnalyze);
+      console.log('Analysis results from API:', result);
+      console.log('Coverage percentage from API:', result.coveragePercentage);
+      console.log('Results structure:', JSON.stringify(result, null, 2));
+      
+      setAnalysisResults(result);
+    } catch (err) {
+      console.error('Error in handleAnalyzeLogic:', err);
+      setAnalysisError(`Error analyzing logic files: ${err.message}`);
+      setAnalysisResults(null);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
 
   return (
     <Container className="mt-5">
@@ -230,6 +279,28 @@ function App() {
                 </Button>
               </div>
               <Statistics files={files} />
+            </Tab>
+            <Tab eventKey="logicAnalysis" title="Logic Analysis">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h3>Application Logic Analysis</h3>
+                <Button 
+                  variant="primary" 
+                  onClick={handleAnalyzeLogic}
+                  disabled={analysisLoading || files.filter(f => f.classification === 'logic').length === 0}
+                >
+                  {analysisLoading ? (
+                    <>
+                      <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                      {' '}Analyzing...
+                    </>
+                  ) : 'Analyze Logic Files'}
+                </Button>
+              </div>
+              <LogicAnalysis 
+                analysisResults={analysisResults}
+                loading={analysisLoading}
+                error={analysisError}
+              />
             </Tab>
           </Tabs>
         </div>

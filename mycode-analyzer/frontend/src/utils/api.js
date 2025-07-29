@@ -85,4 +85,14 @@ export const runTest = async (testCode, fileName, sourceCode) => {
   }
 };
 
+export const analyzeLogicFiles = async (files) => {
+  try {
+    const response = await api.post('/api/analyze-logic', { files });
+    return response.data;
+  } catch (error) {
+    console.error('Error analyzing logic files:', error);
+    throw error;
+  }
+};
+
 export default api;

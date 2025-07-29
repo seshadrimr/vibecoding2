@@ -9,25 +9,49 @@ console.log('Testing Azure Function URL:', AZURE_FUNCTION_URL);
 // Set longer timeout for axios
 axios.defaults.timeout = 30000; // 30 seconds
 
-// Simple C# class for testing
-const sourceCode = `
-public class Calculator {
-    public int Add(int a, int b) {
-        return a + b;
+// Simple C# class for testing - with using statements outside namespace
+const sourceCode = `using System;
+
+namespace TestProject
+{
+    public class Calculator 
+    {
+        public int Add(int a, int b) 
+        {
+            return a + b;
+        }
     }
 }
 `;
 
-// Simple test code
-const testCode = `
-public class CalculatorTests {
-    public void TestAdd() {
-        Calculator calc = new Calculator();
-        int result = calc.Add(2, 3);
-        if (result != 5) {
-            throw new Exception($"Expected 5 but got {result}");
+// Simple test code without external test framework dependencies
+const testCode = `using System;
+using TestProject;
+
+public class TestRunner
+{
+    public static void RunTests()
+    {
+        try
+        {
+            TestAdd();
+            System.Console.WriteLine("All tests passed!");
         }
-        Console.WriteLine("Test passed");
+        catch (System.Exception ex)
+        {
+            System.Console.WriteLine($"Test failed: {ex.Message}");
+        }
+    }
+
+    public static void TestAdd()
+    {
+        TestProject.Calculator calc = new TestProject.Calculator();
+        int result = calc.Add(2, 3);
+        if (result != 5)
+        {
+            throw new System.Exception($"Addition test failed: Expected 5 but got {result}");
+        }
+        System.Console.WriteLine("Addition test passed");
     }
 }
 `;
@@ -48,7 +72,8 @@ async function testAzureFunction() {
         
         const response = await axios.post(AZURE_FUNCTION_URL, {
             sourceCode: sourceCode.trim(),
-            testCode: testCode.trim()
+            testCode: testCode.trim(),
+            entryPoint: 'TestRunner.RunTests'
         });
         
         console.timeEnd('Azure Function Request');

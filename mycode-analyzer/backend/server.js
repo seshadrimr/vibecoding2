@@ -9,12 +9,10 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://mycode-analyzer.netlify.app', 'https://mycode-analyzer.vercel.app'] 
-    : 'http://localhost:3000',  // String instead of array for development
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: '*', // Allow all origins for development/testing
+  methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: false // Set to false to avoid preflight issues
 }));
 app.use(express.json({ limit: '10mb' }));
 
@@ -93,8 +91,9 @@ app.post('/api/classify', async (req, res) => {
   }
 });
 
-// Import test generator utility
+// Import utilities
 const { generateTestCode, runTestCode } = require('./utils/testGenerator');
+const { analyzeLogicFiles } = require('./utils/logicAnalyzer');
 
 // NUnit test generation route
 app.post('/api/generate-test', async (req, res) => {
@@ -126,6 +125,30 @@ app.post('/api/run-test', async (req, res) => {
     });
   } catch (error) {
     console.error('Error running test code:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Logic analysis route
+app.post('/api/analyze-logic', async (req, res) => {
+  try {
+    const { files } = req.body;
+    
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No files provided for analysis' 
+      });
+    }
+    
+    const analysisResults = await analyzeLogicFiles(files);
+    
+    res.json({
+      success: true,
+      results: analysisResults
+    });
+  } catch (error) {
+    console.error('Error analyzing logic files:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -42,20 +42,7 @@ const TestRunner = ({ testCode, fileName, file, result: resultProp }) => {
   
   return (
     <div className="test-runner mt-3">
-      <Button 
-        variant="success" 
-        onClick={runTest}
-        disabled={running || !testCode}
-      >
-        {running ? (
-          <>
-            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-            <span className="ms-2">Running Tests...</span>
-          </>
-        ) : (
-          'Run Tests'
-        )}
-      </Button>
+      {/* Run Tests button hidden as requested */}
 
       {error && (
         <Alert variant="danger" className="mt-3">
